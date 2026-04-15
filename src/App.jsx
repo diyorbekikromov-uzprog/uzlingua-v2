@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+
+import { useState } from 'react';
 
 // ─── PALETTE ───────────────────────────────────────────────
 const C = {
@@ -20,7 +21,7 @@ const C = {
   border: "#DDD5C3",
 };
 
-// ─── DATA: 40 CORRECT UZBEK WORDS ──────────────────────────
+// ─── DATA: 40 UZBEK WORDS ──────────────────────────
 const WORDS = [
   {id:1,uz:"Salom",cat:"Salomlashish",t:{ru:"Привет",en:"Hello",ko:"안녕하세요",zh:"你好",de:"Hallo",tr:"Merhaba"}},
   {id:2,uz:"Xayr",cat:"Salomlashish",t:{ru:"До свидания",en:"Goodbye",ko:"안녕히 가세요",zh:"再见",de:"Auf Wiedersehen",tr:"Hoşça kal"}},
@@ -75,450 +76,437 @@ const LANGS = [
 
 const LESSON_SIZE = 8;
 
-// ─── SPEECH ────────────────────────────────────────────────
+// ─── SPEECH SYNTHESIS ──────────────────────────────────────
 function speak(text, lang) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang; u.rate = 0.85;
+  u.lang = lang;
+  u.rate = 0.85;
+  u.pitch = 1;
+  u.volume = 1;
   window.speechSynthesis.speak(u);
 }
 
-// ─── AI HELPERS ────────────────────────────────────────────
-async function aiGenExercise(word, translation, langName) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 200,
-      messages: [{
-        role: "user",
-        content: `Make a simple short sentence in ${langName} using the word "${translation}". Replace the word with "___". Reply ONLY with valid JSON, no markdown: {"sentence":"...","answer":"${translation}"}`
-      }]
-    })
-  });
-  const d = await res.json();
-  const raw = d.content?.find(b => b.type === "text")?.text || "{}";
-  try { return JSON.parse(raw.replace(/```json|```/g,"").trim()); }
-  catch { return { sentence: `___ (${word})`, answer: translation }; }
-}
+// ─── MAIN APP ──────────────────────────────────────────────
+export default function App() {
+  const [screen, setScreen] = useState("langs");
+  const [lang, setLang] = useState(null);
+  const [lesson, setLesson] = useState(0);
+  const [xp, setXp] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [mode, setMode] = useState("cards");
+  const [cardIdx, setCardIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [quizIdx, setQuizIdx] = useState(0);
+  const [quizAns, setQuizAns] = useState(null);
+  const [showingAudio, setShowingAudio] = useState(false);
 
-async function aiCheckAnswer(userAns, correctAns, langName) {
-  if (userAns.trim().toLowerCase() === correctAns.trim().toLowerCase())
-    return { correct: true, msg: "Ajoyib! Bilasiz! 🎉" };
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 80,
-      messages: [{
-        role: "user",
-        content: `In ${langName}: is "${userAns}" an acceptable equivalent of "${correctAns}"? Reply ONLY JSON: {"correct":true/false,"msg":"short feedback in Uzbek max 8 words"}`
-      }]
-    })
-  });
-  const d = await res.json();
-  const raw = d.content?.find(b => b.type === "text")?.text || '{"correct":false,"msg":"Xato"}';
-  try { return JSON.parse(raw.replace(/```json|```/g,"").trim()); }
-  catch { return { correct: false, msg: `To'g'ri javob: ${correctAns}` }; }
-}
+  const langObj = LANGS.find(l => l.code === lang);
+  const lessonWords = WORDS.slice(lesson * LESSON_SIZE, (lesson + 1) * LESSON_SIZE);
 
-// ─── STYLES ────────────────────────────────────────────────
-const S = {
-  app: { minHeight:"100vh", background:C.bg, fontFamily:"'DM Sans',system-ui,sans-serif", color:C.text },
-  // header
-  header: { background:`linear-gradient(135deg,${C.primaryDk},${C.primary})`, padding:"14px 16px", position:"sticky", top:0, zIndex:50 },
-  headerRow: { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
-  logo: { display:"flex", alignItems:"center", gap:8 },
-  logoIcon: { width:36, height:36, background:`linear-gradient(135deg,${C.gold},#F5C842)`, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 },
-  logoText: { fontSize:20, fontWeight:800, color:"#fff", letterSpacing:-0.5 },
-  pill: { display:"flex", alignItems:"center", gap:4, padding:"4px 10px", borderRadius:20, fontSize:13, fontWeight:700 },
-  // home
-  hero: { padding:"24px 16px 8px", textAlign:"center" },
-  heroTitle: { fontSize:26, fontWeight:900, color:C.primary, marginBottom:6 },
-  heroSub: { fontSize:14, color:C.muted },
-  grid: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, padding:"12px 14px 32px" },
-  langCard: { background:C.card, borderRadius:16, padding:"14px 12px 12px", cursor:"pointer", border:`2px solid ${C.border}`, transition:"all .15s", userSelect:"none" },
-  langCardActive: { borderColor:C.primary, boxShadow:`0 0 0 3px ${C.primary}22` },
-  langFlag: { fontSize:32, display:"block", marginBottom:6 },
-  langName: { fontSize:14, fontWeight:800, color:C.text, marginBottom:2 },
-  langXP: { fontSize:11, color:C.muted, fontWeight:600, marginBottom:8 },
-  startBtn: { width:"100%", padding:"9px 0", background:`linear-gradient(135deg,${C.primary},${C.teal})`, border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:800, cursor:"pointer", borderBottom:`3px solid ${C.primaryDk}` },
-  // progress
-  progressTrack: { height:10, background:"rgba(255,255,255,0.2)", borderRadius:6, overflow:"hidden" },
-  progressFill: { height:"100%", background:`linear-gradient(90deg,${C.goldBorder},${C.gold})`, borderRadius:6, transition:"width .4s ease" },
-  counterText: { fontSize:11, color:"rgba(255,255,255,0.6)", textAlign:"right", marginTop:3, fontWeight:600 },
-  backBtn: { background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", padding:"7px 10px", borderRadius:10, color:"#fff", fontSize:14, fontWeight:700, display:"flex", alignItems:"center", gap:4 },
-  xpPill: { background:C.goldLight, color:C.gold, border:`1px solid ${C.goldBorder}` },
-  // lesson
-  lessonBody: { padding:"16px 14px", display:"flex", flexDirection:"column", gap:12 },
-  wordCard: { background:C.card, borderRadius:18, padding:"24px 16px 20px", textAlign:"center", border:`1.5px solid ${C.border}`, boxShadow:"0 2px 12px rgba(0,0,0,0.06)" },
-  catBadge: { display:"inline-block", padding:"3px 10px", borderRadius:20, background:C.tealLight, color:C.teal, fontSize:11, fontWeight:700, marginBottom:8 },
-  wordBig: { fontSize:48, fontWeight:900, color:C.primary, margin:"8px 0", letterSpacing:-1 },
-  audioBtn: { background:"none", border:`1.5px solid ${C.border}`, borderRadius:20, padding:"6px 14px", color:C.muted, cursor:"pointer", fontSize:13, fontWeight:600, display:"inline-flex", alignItems:"center", gap:5 },
-  // exercise pick
-  exPickGrid: { display:"grid", gridTemplateColumns:"1fr", gap:8 },
-  exBtn: { padding:"14px 16px", border:`2px solid ${C.border}`, borderRadius:14, background:C.card, cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:12, fontFamily:"inherit" },
-  exBtnEmoji: { fontSize:24, width:36, textAlign:"center" },
-  exBtnLabel: { fontSize:15, fontWeight:800, color:C.text, display:"block" },
-  exBtnSub: { fontSize:12, color:C.muted, fontWeight:500 },
-  // flashcard reveal
-  revealCard: { background:`linear-gradient(135deg,${C.tealLight},#E8F4FF)`, border:`1.5px solid #B2DFDB`, borderRadius:16, padding:"28px 16px", textAlign:"center" },
-  revealLabel: { fontSize:11, color:C.teal, fontWeight:700, textTransform:"uppercase", letterSpacing:1, marginBottom:6 },
-  revealWord: { fontSize:36, fontWeight:900, color:C.primary },
-  // multiple choice
-  mcQ: { fontSize:15, fontWeight:700, color:C.muted, textAlign:"center" },
-  mcOpts: { display:"flex", flexDirection:"column", gap:8 },
-  mcOpt: { padding:"14px 16px", border:`2px solid ${C.border}`, borderRadius:12, background:C.card, cursor:"pointer", fontSize:16, fontWeight:700, color:C.text, textAlign:"left", fontFamily:"inherit", transition:"all .12s" },
-  mcOptCorrect: { background:C.successBg, borderColor:C.success, color:C.success },
-  mcOptWrong: { background:C.errorBg, borderColor:C.error, color:C.error },
-  // AI exercise
-  aiCard: { background:C.card, borderRadius:16, padding:"20px 16px", border:`1.5px solid ${C.goldBorder}` },
-  aiLabel: { fontSize:11, color:C.gold, fontWeight:700, textTransform:"uppercase", letterSpacing:1, marginBottom:8, display:"flex", alignItems:"center", gap:5 },
-  aiSentence: { fontSize:17, fontWeight:700, color:C.text, lineHeight:1.6, marginBottom:14 },
-  aiInput: { width:"100%", padding:"12px 14px", border:`2px solid ${C.border}`, borderRadius:12, fontSize:16, fontWeight:600, fontFamily:"inherit", color:C.text, background:"#FAFAFA", outline:"none", boxSizing:"border-box" },
-  aiInputFocus: { borderColor:C.primary },
-  checkBtn: { width:"100%", padding:"14px", background:`linear-gradient(135deg,${C.primary},${C.teal})`, border:"none", borderRadius:12, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer", borderBottom:`3px solid ${C.primaryDk}`, fontFamily:"inherit" },
-  // feedback
-  feedbackBox: { borderRadius:14, padding:"14px 16px", textAlign:"center" },
-  feedbackOk: { background:C.successBg, border:`1.5px solid ${C.success}` },
-  feedbackErr: { background:C.errorBg, border:`1.5px solid ${C.error}` },
-  feedbackTitle: { fontSize:18, fontWeight:900, marginBottom:4 },
-  feedbackSub: { fontSize:13, fontWeight:600, marginBottom:10 },
-  // action buttons
-  greenBtn: { width:"100%", padding:"15px", background:"#1B7F4A", border:"none", borderRadius:12, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer", borderBottom:"3px solid #145C35", fontFamily:"inherit" },
-  redBtn: { width:"100%", padding:"15px", background:C.error, border:"none", borderRadius:12, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer", borderBottom:"3px solid #7F1010", fontFamily:"inherit" },
-  // complete
-  completeWrap: { padding:"20px 14px" },
-  completeCard: { background:C.card, borderRadius:20, padding:"36px 20px", textAlign:"center", border:`1.5px solid ${C.border}`, boxShadow:"0 4px 20px rgba(0,0,0,0.08)" },
-  trophyAnim: { fontSize:64, marginBottom:16, display:"block" },
-  completeTitle: { fontSize:30, fontWeight:900, color:C.primary, marginBottom:6 },
-  completeSub: { fontSize:15, color:C.muted, marginBottom:20 },
-  xpBig: { background:C.goldLight, border:`2px solid ${C.goldBorder}`, borderRadius:14, padding:"16px", marginBottom:20 },
-  xpBigNum: { fontSize:38, fontWeight:900, color:C.gold },
-  xpBigLabel: { fontSize:12, color:C.gold, fontWeight:700 },
-  statRow: { display:"flex", gap:10, marginBottom:20 },
-  statBox: { flex:1, borderRadius:12, padding:"14px 10px", textAlign:"center" },
-  homeBtn: { width:"100%", padding:"15px", background:`linear-gradient(135deg,${C.primary},${C.teal})`, border:"none", borderRadius:12, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer", borderBottom:`3px solid ${C.primaryDk}`, fontFamily:"inherit" },
-  // loading spinner
-  spinner: { display:"inline-block", width:20, height:20, border:"3px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite" },
-};
+  // ─── HANDLERS ──────────────────────────────────────────────
+  const handleLangSelect = (code) => {
+    setLang(code);
+    setScreen("menu");
+  };
 
-// ─── MAIN COMPONENT ────────────────────────────────────────
-export default function UzLingua() {
-  const [screen, setScreen]           = useState("home");
-  const [lang, setLang]               = useState(null);
-  const [sessionWords, setSessionWords] = useState([]);
-  const [idx, setIdx]                 = useState(0);
-  const [exType, setExType]           = useState(null);
-  const [sessionXP, setSessionXP]     = useState(0);
-  const [totalXP, setTotalXP]         = useState(0);
-  const [langXP, setLangXP]           = useState({});
-  const [mcOpts, setMcOpts]           = useState([]);
-  const [chosen, setChosen]           = useState(null);
-  const [isOk, setIsOk]               = useState(null);
-  const [aiEx, setAiEx]               = useState(null);
-  const [aiLoading, setAiLoading]     = useState(false);
-  const [inputVal, setInputVal]       = useState("");
-  const [inputFocus, setInputFocus]   = useState(false);
-  const [aiFb, setAiFb]               = useState(null);
-  const [checking, setChecking]       = useState(false);
-  const [answered, setAnswered]       = useState(false);
-
-  const word = sessionWords[idx];
-  const langData = LANGS.find(l => l.code === lang);
-  const trans = word?.t[lang] ?? "";
-  const progress = sessionWords.length ? (idx / sessionWords.length) * 100 : 0;
-
-  // ── Start lesson ──
-  const startLesson = useCallback((code) => {
-    const shuffled = [...WORDS].sort(() => Math.random() - 0.5).slice(0, LESSON_SIZE);
-    setLang(code); setSessionWords(shuffled); setIdx(0);
-    setExType(null); setSessionXP(0); setAnswered(false);
-    setChosen(null); setIsOk(null); setAiEx(null); setAiFb(null);
+  const handleStartLesson = (m) => {
+    setMode(m);
     setScreen("lesson");
-  }, []);
+    setCardIdx(0);
+    setFlipped(false);
+    setQuizIdx(0);
+    setQuizAns(null);
+  };
 
-  // ── Next word ──
-  const nextWord = useCallback((xpGain = 0) => {
-    const newXP = sessionXP + xpGain;
-    setSessionXP(newXP);
-    if (idx + 1 >= sessionWords.length) {
-      setTotalXP(p => p + newXP);
-      setLangXP(p => ({ ...p, [lang]: (p[lang] || 0) + newXP }));
-      setScreen("complete");
+  const handleCardFlip = () => {
+    setFlipped(!flipped);
+  };
+
+  const handleCardNext = () => {
+    if (cardIdx < lessonWords.length - 1) {
+      setCardIdx(cardIdx + 1);
+      setFlipped(false);
     } else {
-      setIdx(i => i + 1);
-      setExType(null); setChosen(null); setIsOk(null);
-      setAiEx(null); setAiFb(null); setInputVal(""); setAnswered(false);
+      setXp(xp + 50);
+      setStreak(streak + 1);
+      setScreen("menu");
     }
-    window.scrollTo(0, 0);
-  }, [idx, sessionWords.length, sessionXP, lang]);
+  };
 
-  // ── Choose exercise ──
-  const pickEx = useCallback(async (type) => {
-    setExType(type);
-    if (type === "choice") {
-      const others = WORDS.filter(w => w.id !== word.id)
-        .sort(() => Math.random() - 0.5).slice(0, 3).map(w => w.t[lang]);
-      setMcOpts([trans, ...others].sort(() => Math.random() - 0.5));
+  const handleQuizAnswer = (correct) => {
+    if (correct) {
+      setXp(xp + 10);
+      setStreak(streak + 1);
+      if (quizIdx < lessonWords.length - 1) {
+        setQuizIdx(quizIdx + 1);
+        setQuizAns(null);
+      } else {
+        setXp(xp + 50);
+        setScreen("menu");
+      }
+    } else {
+      setQuizAns(false);
+      setTimeout(() => setQuizAns(null), 1000);
     }
-    if (type === "ai") {
-      setAiLoading(true);
-      try {
-        const ex = await aiGenExercise(word.uz, trans, langData?.name ?? "English");
-        setAiEx(ex);
-      } catch { setAiEx({ sentence: `___ (${word.uz})`, answer: trans }); }
-      setAiLoading(false);
-    }
-  }, [word, trans, lang, langData]);
+  };
 
-  // ── Multiple choice answer ──
-  const chooseAnswer = useCallback((opt) => {
-    if (answered) return;
-    setChosen(opt); setAnswered(true);
-    setIsOk(opt === trans);
-  }, [answered, trans]);
+  const handlePlayAudio = (text, lang) => {
+    setShowingAudio(true);
+    speak(text, lang);
+    setTimeout(() => setShowingAudio(false), 2000);
+  };
 
-  // ── AI submit ──
-  const submitAI = useCallback(async () => {
-    if (!inputVal.trim() || checking) return;
-    setChecking(true);
-    const result = await aiCheckAnswer(inputVal.trim(), trans, langData?.name ?? "");
-    setAiFb(result); setChecking(false); setAnswered(true);
-  }, [inputVal, trans, langData, checking]);
+  const handleBack = () => {
+    if (screen === "lesson") setScreen("menu");
+    else if (screen === "menu") setLang(null), setScreen("langs");
+  };
 
-  // ─── HOME SCREEN ──────────────────────────────────────────
-  if (screen === "home") return (
-    <div style={S.app}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');@keyframes spin{to{transform:rotate(360deg)}}@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}`}</style>
-      {/* Header */}
-      <div style={S.header}>
-        <div style={S.headerRow}>
-          <div style={S.logo}>
-            <div style={S.logoIcon}>✦</div>
-            <span style={S.logoText}>UzLingua</span>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <div style={{...S.pill, background:"rgba(255,255,255,0.15)", color:"#fff"}}>
-              ⚡ {totalXP} XP
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* Hero */}
-      <div style={S.hero}>
-        <div style={S.heroTitle}>Ўзбекчадан ўрган 🌏</div>
-        <div style={S.heroSub}>6 та тилни Ipak Yo'li usulida</div>
-      </div>
-      {/* Language grid */}
-      <div style={S.grid}>
-        {LANGS.map(l => (
-          <div key={l.code} style={{...S.langCard}} onClick={() => startLesson(l.code)}
-            onMouseEnter={e => e.currentTarget.style.borderColor = C.primary}
-            onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-            <span style={S.langFlag}>{l.flag}</span>
-            <div style={S.langName}>{l.name}</div>
-            <div style={S.langXP}>⚡ {langXP[l.code] || 0} XP</div>
-            <button style={S.startBtn}>Boshlash →</button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  // ─── RENDER: LANGUAGE SELECTION ────────────────────────────
+  if (screen === "langs") {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, padding: "20px", fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+          <h1 style={{ textAlign: "center", color: C.primary, marginBottom: "30px" }}>
+            ✦ UzLingua ⚡ {xp} XP
+          </h1>
+          <p style={{ textAlign: "center", color: C.muted, marginBottom: "20px" }}>
+            Ўзбекчадан ўрган 🌏 6 та тилни Ipak Yo'li usulida
+          </p>
 
-  // ─── COMPLETE SCREEN ─────────────────────────────────────
-  if (screen === "complete") return (
-    <div style={S.app}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
-      <div style={S.header}>
-        <div style={S.headerRow}>
-          <div style={S.logo}><div style={S.logoIcon}>✦</div><span style={S.logoText}>UzLingua</span></div>
-        </div>
-      </div>
-      <div style={S.completeWrap}>
-        <div style={S.completeCard}>
-          <span style={{...S.trophyAnim, animation:"bounce 1.2s ease infinite"}}>🏆</span>
-          <div style={S.completeTitle}>Barakalla!</div>
-          <div style={S.completeSub}>Siz {sessionWords.length} ta so'zni o'rgandingiz</div>
-          <div style={S.xpBig}>
-            <div style={S.xpBigLabel}>Bugun qazanildi</div>
-            <div style={S.xpBigNum}>⚡ +{sessionXP} XP</div>
-          </div>
-          <div style={S.statRow}>
-            <div style={{...S.statBox, background:"#EEF2FF", border:"1.5px solid #C7D2FE"}}>
-              <div style={{fontSize:26,fontWeight:900,color:C.primary}}>{langData?.flag}</div>
-              <div style={{fontSize:12,color:C.muted,fontWeight:700,marginTop:4}}>{langData?.name}</div>
-            </div>
-            <div style={{...S.statBox, background:C.goldLight, border:`1.5px solid ${C.goldBorder}`}}>
-              <div style={{fontSize:26,fontWeight:900,color:C.gold}}>⚡{totalXP + sessionXP}</div>
-              <div style={{fontSize:12,color:C.gold,fontWeight:700,marginTop:4}}>Jami XP</div>
-            </div>
-          </div>
-          <button style={S.homeBtn} onClick={() => setScreen("home")}>
-            Bosh sahifaga qaytish 🏠
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ─── LESSON SCREEN ───────────────────────────────────────
-  return (
-    <div style={S.app}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');@keyframes spin{to{transform:rotate(360deg)}}@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}`}</style>
-
-      {/* Header */}
-      <div style={S.header}>
-        <div style={S.headerRow}>
-          <button style={S.backBtn} onClick={() => setScreen("home")}>← Orqaga</button>
-          <span style={{color:"#fff",fontWeight:800,fontSize:15}}>{langData?.flag} {langData?.name}</span>
-          <div style={{...S.pill, ...S.xpPill}}>⚡+{sessionXP}</div>
-        </div>
-        <div style={S.progressTrack}>
-          <div style={{...S.progressFill, width:`${progress}%`}} />
-        </div>
-        <div style={S.counterText}>{idx + 1} / {sessionWords.length}</div>
-      </div>
-
-      <div style={S.lessonBody}>
-        {/* Word Card */}
-        <div style={S.wordCard}>
-          <div style={S.catBadge}>{word?.cat}</div>
-          <div style={S.wordBig}>{word?.uz}</div>
-          <button style={S.audioBtn} onClick={() => speak(word?.uz ?? "", "tr-TR")}>
-            🔊 Eshit (O'zbekcha)
-          </button>
-        </div>
-
-        {/* ── No exercise chosen yet ── */}
-        {!exType && (
-          <div style={S.exPickGrid}>
-            <div style={{fontSize:13, color:C.muted, fontWeight:700, textAlign:"center"}}>
-              Mashq turini tanlang:
-            </div>
-            {[
-              {type:"flash", emoji:"📖", label:"Flesh-karta", sub:"Tarjimani ko'rsatish"},
-              {type:"choice", emoji:"🎯", label:"Test", sub:"4 ta variant ichidan tanlash"},
-              {type:"ai", emoji:"🤖", label:"AI Topshiriq", sub:"Claude sizga mashq beradi"},
-            ].map(({type,emoji,label,sub}) => (
-              <button key={type} style={S.exBtn} onClick={() => pickEx(type)}>
-                <span style={S.exBtnEmoji}>{emoji}</span>
-                <div>
-                  <span style={S.exBtnLabel}>{label}</span>
-                  <span style={S.exBtnSub}>{sub}</span>
-                </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+            {LANGS.map(l => (
+              <button
+                key={l.code}
+                onClick={() => handleLangSelect(l.code)}
+                style={{
+                  padding: "20px",
+                  border: `2px solid ${C.border}`,
+                  borderRadius: "12px",
+                  background: C.card,
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: C.text,
+                  transition: "all 0.3s",
+                }}
+                onMouseEnter={(e) => e.target.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)"}
+                onMouseLeave={(e) => e.target.style.boxShadow = "none"}
+              >
+                <div style={{ fontSize: "24px", marginBottom: "8px" }}>{l.flag}</div>
+                <div>{l.name}</div>
+                <div style={{ fontSize: "12px", color: C.muted }}>⚡ 0 XP</div>
               </button>
             ))}
           </div>
-        )}
-
-        {/* ── Flashcard ── */}
-        {exType === "flash" && (
-          <>
-            <div style={{...S.revealCard, animation:"pop .3s ease"}}>
-              <div style={S.revealLabel}>Tarjima — {langData?.name}</div>
-              <div style={S.revealWord}>{trans}</div>
-              <div style={{marginTop:10}}>
-                <button style={S.audioBtn} onClick={() => speak(trans, langData?.speech ?? "en-US")}>
-                  🔊 Eshit
-                </button>
-              </div>
-            </div>
-            <button style={S.greenBtn} onClick={() => nextWord(5)}>
-              O'rgandim ✓  (+5 XP)
-            </button>
-          </>
-        )}
-
-        {/* ── Multiple choice ── */}
-        {exType === "choice" && (
-          <>
-            <div style={S.mcQ}>"{word?.uz}" — qaysi ma'nosi?</div>
-            <div style={S.mcOpts}>
-              {mcOpts.map((opt, i) => {
-                const base = {...S.mcOpt};
-                if (answered && opt === trans) Object.assign(base, S.mcOptCorrect);
-                else if (answered && opt === chosen && opt !== trans) Object.assign(base, S.mcOptWrong);
-                return (
-                  <button key={i} style={base} onClick={() => chooseAnswer(opt)}>
-                    {opt}
-                    {answered && opt === trans && " ✓"}
-                    {answered && opt === chosen && opt !== trans && " ✗"}
-                  </button>
-                );
-              })}
-            </div>
-            {answered && (
-              <div style={{...S.feedbackBox, ...(isOk ? S.feedbackOk : S.feedbackErr), animation:"pop .3s ease"}}>
-                <div style={{...S.feedbackTitle, color: isOk ? C.success : C.error}}>
-                  {isOk ? "✓ To'g'ri!" : "✗ Xato"}
-                </div>
-                {!isOk && <div style={{...S.feedbackSub, color:C.error}}>To'g'ri javob: {trans}</div>}
-                {isOk
-                  ? <button style={S.greenBtn} onClick={() => nextWord(10)}>Keyingi so'z → (+10 XP)</button>
-                  : <button style={S.redBtn} onClick={() => { setAnswered(false); setChosen(null); setIsOk(null); setMcOpts(p => [...p].sort(() => Math.random()-.5)); }}>Qayta urining</button>
-                }
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ── AI Exercise ── */}
-        {exType === "ai" && (
-          <>
-            {aiLoading && (
-              <div style={{textAlign:"center", padding:"32px 0", color:C.muted}}>
-                <div style={{fontSize:14, fontWeight:700, marginBottom:10}}>🤖 Claude mashq tayyorlamoqda...</div>
-                <div style={S.spinner} />
-              </div>
-            )}
-            {!aiLoading && aiEx && (
-              <div style={{...S.aiCard, animation:"pop .3s ease"}}>
-                <div style={S.aiLabel}>🤖 AI Topshiriq</div>
-                <div style={S.aiSentence}>
-                  {aiEx.sentence.split("___").map((part, i, arr) =>
-                    i < arr.length - 1
-                      ? <span key={i}>{part}<span style={{background:C.goldLight,border:`1.5px dashed ${C.gold}`,borderRadius:6,padding:"2px 14px",color:answered ? C.gold : "transparent",transition:"color .3s"}}>{answered ? aiEx.answer : "___"}</span></span>
-                      : <span key={i}>{part}</span>
-                  )}
-                </div>
-                {!answered && (
-                  <>
-                    <input
-                      style={{...S.aiInput, ...(inputFocus ? S.aiInputFocus : {})}}
-                      placeholder={`${langData?.name} tilida yozing...`}
-                      value={inputVal}
-                      onChange={e => setInputVal(e.target.value)}
-                      onFocus={() => setInputFocus(true)}
-                      onBlur={() => setInputFocus(false)}
-                      onKeyDown={e => e.key === "Enter" && submitAI()}
-                    />
-                    <div style={{height:10}} />
-                    <button style={{...S.checkBtn, opacity: checking ? 0.7 : 1}} onClick={submitAI} disabled={checking}>
-                      {checking ? "Tekshirilmoqda..." : "Tekshirish ✓"}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-            {aiFb && (
-              <div style={{...S.feedbackBox, ...(aiFb.correct ? S.feedbackOk : S.feedbackErr), animation:"pop .3s ease"}}>
-                <div style={{...S.feedbackTitle, color: aiFb.correct ? C.success : C.error}}>
-                  {aiFb.correct ? "✓ Ajoyib!" : "✗ Xato"}
-                </div>
-                <div style={{...S.feedbackSub, color:C.muted}}>{aiFb.msg}</div>
-                {aiFb.correct
-                  ? <button style={S.greenBtn} onClick={() => nextWord(15)}>Keyingi → (+15 XP)</button>
-                  : <button style={S.redBtn} onClick={() => { setAiFb(null); setAnswered(false); setInputVal(""); }}>Qayta urining</button>
-                }
-              </div>
-            )}
-          </>
-        )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // ─── RENDER: MENU ──────────────────────────────────────────
+  if (screen === "menu") {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, padding: "20px", fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+            <button
+              onClick={handleBack}
+              style={{
+                padding: "8px 16px",
+                background: C.primary,
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+              }}
+            >
+              ← Orqaga
+            </button>
+            <h1 style={{ color: C.primary, margin: "0" }}>
+              {langObj?.flag} {langObj?.name}
+            </h1>
+            <div style={{ fontSize: "14px", color: C.muted }}>
+              ⚡ {xp} XP | 🔥 {streak}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <h3 style={{ color: C.text }}>Dars {lesson + 1}</h3>
+            <div style={{
+              background: C.tealLight,
+              height: "8px",
+              borderRadius: "4px",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                background: C.teal,
+                height: "100%",
+                width: `${((lesson + 1) / 5) * 100}%`,
+              }} />
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+            <button
+              onClick={() => handleStartLesson("cards")}
+              style={{
+                padding: "30px",
+                background: C.goldLight,
+                border: `2px solid ${C.goldBorder}`,
+                borderRadius: "12px",
+                cursor: "pointer",
+                fontSize: "16px",
+                fontWeight: "600",
+                color: C.text,
+              }}
+            >
+              <div style={{ fontSize: "32px", marginBottom: "10px" }}>🎴</div>
+              <div>Kartochkalar</div>
+            </button>
+
+            <button
+              onClick={() => handleStartLesson("quiz")}
+              style={{
+                padding: "30px",
+                background: C.successBg,
+                border: `2px solid ${C.success}`,
+                borderRadius: "12px",
+                cursor: "pointer",
+                fontSize: "16px",
+                fontWeight: "600",
+                color: C.text,
+              }}
+            >
+              <div style={{ fontSize: "32px", marginBottom: "10px" }}>❓</div>
+              <div>Testlar</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── RENDER: FLASHCARDS ────────────────────────────────────
+  if (screen === "lesson" && mode === "cards") {
+    const word = lessonWords[cardIdx];
+    const translation = word.t[lang];
+
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, padding: "20px", fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
+            <button
+              onClick={handleBack}
+              style={{
+                padding: "8px 16px",
+                background: C.primary,
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              ← Orqaga
+            </button>
+            <div style={{ fontSize: "14px", color: C.muted }}>
+              {cardIdx + 1} / {lessonWords.length}
+            </div>
+          </div>
+
+          <div
+            onClick={handleCardFlip}
+            style={{
+              background: flipped ? C.card : C.primary,
+              color: flipped ? C.text : "white",
+              padding: "60px 20px",
+              borderRadius: "16px",
+              textAlign: "center",
+              cursor: "pointer",
+              minHeight: "300px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              marginBottom: "30px",
+              transition: "all 0.3s",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+            }}
+          >
+            <div style={{ fontSize: "48px", marginBottom: "20px" }}>
+              {flipped ? "🔤" : "🎯"}
+            </div>
+            <div style={{ fontSize: flipped ? "32px" : "28px", fontWeight: "700" }}>
+              {flipped ? translation : word.uz}
+            </div>
+            <div style={{ fontSize: "14px", marginTop: "20px", opacity: 0.7 }}>
+              {flipped ? "Teskari aylantiring" : "Bosing"}
+            </div>
+          </div>
+
+          {/* AUDIO BUTTONS */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+            <button
+              onClick={() => handlePlayAudio(word.uz, "uz-UZ")}
+              style={{
+                padding: "12px",
+                background: C.teal,
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+              }}
+            >
+              🔊 Ўзбекча
+            </button>
+            <button
+              onClick={() => handlePlayAudio(translation, langObj.speech)}
+              style={{
+                padding: "12px",
+                background: C.gold,
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+              }}
+            >
+              🔊 {langObj?.name}
+            </button>
+          </div>
+
+          {showingAudio && (
+            <div style={{
+              textAlign: "center",
+              color: C.teal,
+              fontSize: "14px",
+              marginBottom: "20px",
+              fontWeight: "600",
+            }}>
+              🔊 Ovoz ijro etilmoqda...
+            </div>
+          )}
+
+          <button
+            onClick={handleCardNext}
+            style={{
+              width: "100%",
+              padding: "16px",
+              background: C.success,
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "700",
+            }}
+          >
+            Keyingi →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── RENDER: QUIZ ──────────────────────────────────────────
+  if (screen === "lesson" && mode === "quiz") {
+    const word = lessonWords[quizIdx];
+    const options = [word.t[lang]];
+    while (options.length < 4) {
+      const randomWord = lessonWords[Math.floor(Math.random() * lessonWords.length)];
+      if (!options.includes(randomWord.t[lang])) {
+        options.push(randomWord.t[lang]);
+      }
+    }
+    options.sort(() => Math.random() - 0.5);
+
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, padding: "20px", fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
+            <button
+              onClick={handleBack}
+              style={{
+                padding: "8px 16px",
+                background: C.primary,
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              ← Orqaga
+            </button>
+            <div style={{ fontSize: "14px", color: C.muted }}>
+              {quizIdx + 1} / {lessonWords.length}
+            </div>
+          </div>
+
+          <div style={{
+            background: C.card,
+            padding: "30px",
+            borderRadius: "12px",
+            marginBottom: "30px",
+            textAlign: "center",
+            border: `2px solid ${C.border}`,
+          }}>
+            <div style={{ fontSize: "14px", color: C.muted, marginBottom: "10px" }}>
+              Tarjimani toping:
+            </div>
+            <div style={{ fontSize: "36px", fontWeight: "700", color: C.primary }}>
+              {word.uz}
+            </div>
+          </div>
+
+          {/* AUDIO BUTTON FOR QUIZ */}
+          <button
+            onClick={() => handlePlayAudio(word.uz, "uz-UZ")}
+            style={{
+              width: "100%",
+              padding: "12px",
+              background: C.teal,
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "600",
+              marginBottom: "20px",
+            }}
+          >
+            🔊 Eshit
+          </button>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
+            {options.map((opt, i) => (
+              <button
+                key={i}
+                onClick={() => handleQuizAnswer(opt === word.t[lang])}
+                style={{
+                  padding: "16px",
+                  background: quizAns === null ? C.card : opt === word.t[lang] ? C.successBg : C.errorBg,
+                  color: C.text,
+                  border: `2px solid ${quizAns === null ? C.border : opt === word.t[lang] ? C.success : C.error}`,
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  transition: "all 0.2s",
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
