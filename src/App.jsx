@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState } from "react";
 
 // ─── PALETTE ───────────────────────────────────────────────
 const C = {
@@ -21,7 +21,51 @@ const C = {
   border: "#DDD5C3",
 };
 
-// ─── DATA: 40 UZBEK WORDS ──────────────────────────
+// ─── AUDIO URLs FROM CLOUD ─────────────────────────────────
+const AUDIO_URLS = {
+  "aka": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/KHdMPiGgCBPwzoWo.mp3",
+  "assalomu": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/zhplTgcCQVqESAxK.mp3",
+  "baliq": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/hhsLzJuRhzIBdhZf.mp3",
+  "besh": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/bMLSnZdSoZfyRdot.mp3",
+  "bir": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/DheUJciZZbxHCuYK.mp3",
+  "choy": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/itgqJuZFPrwclFfE.mp3",
+  "daftar": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/fVpVTbAnXxVtgHOS.mp3",
+  "ikki": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/UvbdAJeJKTUmbdht.mp3",
+  "iltimos": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/TrlExnBXGpsOWSWG.mp3",
+  "it": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/nBCEpeyvENejytDk.mp3",
+  "kechirasiz": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/IiYMbdRRqoBzkHNE.mp3",
+  "kitob": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/PHYrTHzaZdVHrnZS.mp3",
+  "ko'k": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/owoByIKNtokiDjKK.mp3",
+  "mushuk": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/DTzhklUdfnpbJpnI.mp3",
+  "non": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/mhQYeQJbHkJbVAhq.mp3",
+  "o'qish": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/aYeAYySFXnWCQmbf.mp3",
+  "oila": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/RwTQrcYHUtoyaytf.mp3",
+  "ona": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/ZqydgAcpVpaXFArR.mp3",
+  "oq": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/aTqhBUfqyDVvjhIC.mp3",
+  "ot": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/iAjeZVxIRrBwmZiI.mp3",
+  "ota": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/dBczSElnofaCzKTa.mp3",
+  "plov": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/mmkCwLacFYsNBMCu.mp3",
+  "qalam": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/mRjBXbCtMGiUcsBT.mp3",
+  "qizil": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/tYTmdrYSHQgbspIe.mp3",
+  "qora": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/oXLeAPTmhYkJkDDR.mp3",
+  "qush": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/VhxEyLpapkRZqebX.mp3",
+  "rahmat": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/ECXilCrTuDpeptbM.mp3",
+  "sabzi": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/ozgaBOljnkGiMGsJ.mp3",
+  "sariq": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/RTNPESFrHugYGjYv.mp3",
+  "stol": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/haKhZLMHGZJGllwa.mp3",
+  "stul": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/kWqclpKSfqzkOoUd.mp3",
+  "suv": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/okbDHkkaPnBFqOff.mp3",
+  "to'rt": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/svcJTFiELZtRKZgq.mp3",
+  "uch": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/PbUQLvNGOfeFNWzh.mp3",
+  "uka": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/lzbSnehaUptwQLjj.mp3",
+  "uyqu": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/utIDDcQJfbBcnXVO.mp3",
+  "xayr": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/sjtgPViVSGQlTNHu.mp3",
+  "yozish": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/TWmGtsPBfPMrrSXC.mp3",
+  "yugumoq": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/rBLEiqztnKGiSMuB.mp3",
+  "yugurish": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663494943296/FRNgGJtIKmlTNCZy.mp3"
+};
+
+// ─── DATA: 40 CORRECT UZBEK WORDS ──────────────────────────
 const WORDS = [
   {id:1,uz:"Salom",cat:"Salomlashish",t:{ru:"Привет",en:"Hello",ko:"안녕하세요",zh:"你好",de:"Hallo",tr:"Merhaba"}},
   {id:2,uz:"Xayr",cat:"Salomlashish",t:{ru:"До свидания",en:"Goodbye",ko:"안녕히 가세요",zh:"再见",de:"Auf Wiedersehen",tr:"Hoşça kal"}},
@@ -66,137 +110,103 @@ const WORDS = [
 ];
 
 const LANGS = [
-  {code:"ru",name:"Русский",flag:"🇷🇺",speech:"ru-RU"},
-  {code:"en",name:"English",flag:"🇬🇧",speech:"en-US"},
-  {code:"ko",name:"한국어",flag:"🇰🇷",speech:"ko-KR"},
-  {code:"zh",name:"中文",flag:"🇨🇳",speech:"zh-CN"},
-  {code:"de",name:"Deutsch",flag:"🇩🇪",speech:"de-DE"},
-  {code:"tr",name:"Türkçe",flag:"🇹🇷",speech:"tr-TR"},
+  {code:"ru",name:"Русский",flag:"🇷🇺"},
+  {code:"en",name:"English",flag:"🇬🇧"},
+  {code:"ko",name:"한국어",flag:"🇰🇷"},
+  {code:"zh",name:"中文",flag:"🇨🇳"},
+  {code:"de",name:"Deutsch",flag:"🇩🇪"},
+  {code:"tr",name:"Türkçe",flag:"🇹🇷"},
 ];
 
 const LESSON_SIZE = 8;
 
-// ─── SPEECH SYNTHESIS ──────────────────────────────────────
-function speak(text, lang) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang;
-  u.rate = 0.85;
-  u.pitch = 1;
-  u.volume = 1;
-  window.speechSynthesis.speak(u);
+// ─── PLAY AUDIO FROM CLOUD ─────────────────────────────────
+function playAudio(wordKey) {
+  const url = AUDIO_URLS[wordKey.toLowerCase()];
+  if (url) {
+    const audio = new Audio(url);
+    audio.play().catch(e => console.log("Audio play error:", e));
+  }
 }
 
-// ─── MAIN APP ──────────────────────────────────────────────
-export default function App() {
-  const [screen, setScreen] = useState("langs");
+// ─── COMPONENT ──────────────────────────────────────────────
+export default function UzLingua() {
   const [lang, setLang] = useState(null);
-  const [lesson, setLesson] = useState(0);
-  const [xp, setXp] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [mode, setMode] = useState("cards");
+  const [page, setPage] = useState("home");
+  const [lessonIdx, setLessonIdx] = useState(0);
+  const [xp, setXp] = useState(4100);
+  const [streak, setStreak] = useState(7);
   const [cardIdx, setCardIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [quizIdx, setQuizIdx] = useState(0);
-  const [quizAns, setQuizAns] = useState(null);
-  const [showingAudio, setShowingAudio] = useState(false);
+  const [testIdx, setTestIdx] = useState(0);
+  const [testAnswered, setTestAnswered] = useState(false);
+  const [testCorrect, setTestCorrect] = useState(false);
 
-  const langObj = LANGS.find(l => l.code === lang);
-  const lessonWords = WORDS.slice(lesson * LESSON_SIZE, (lesson + 1) * LESSON_SIZE);
+  const lessons = lang ? Array.from({length: Math.ceil(WORDS.length/LESSON_SIZE)}, (_, i) => 
+    WORDS.slice(i*LESSON_SIZE, (i+1)*LESSON_SIZE)
+  ) : [];
+  
+  const currentLesson = lessons[lessonIdx] || [];
+  const currentWord = currentLesson[cardIdx];
+  const testWord = currentLesson[testIdx];
 
-  // ─── HANDLERS ──────────────────────────────────────────────
   const handleLangSelect = (code) => {
     setLang(code);
-    setScreen("menu");
-  };
-
-  const handleStartLesson = (m) => {
-    setMode(m);
-    setScreen("lesson");
-    setCardIdx(0);
-    setFlipped(false);
-    setQuizIdx(0);
-    setQuizAns(null);
+    setPage("lessons");
   };
 
   const handleCardFlip = () => {
-    setFlipped(!flipped);
+    setCardIdx(c => c < currentLesson.length - 1 ? c + 1 : 0);
   };
 
-  const handleCardNext = () => {
-    if (cardIdx < lessonWords.length - 1) {
-      setCardIdx(cardIdx + 1);
-      setFlipped(false);
-    } else {
-      setXp(xp + 50);
-      setStreak(streak + 1);
-      setScreen("menu");
-    }
-  };
-
-  const handleQuizAnswer = (correct) => {
+  const handleTestAnswer = (answer) => {
+    const correct = answer === testWord.t[lang];
+    setTestCorrect(correct);
+    setTestAnswered(true);
     if (correct) {
-      setXp(xp + 10);
-      setStreak(streak + 1);
-      if (quizIdx < lessonWords.length - 1) {
-        setQuizIdx(quizIdx + 1);
-        setQuizAns(null);
-      } else {
-        setXp(xp + 50);
-        setScreen("menu");
-      }
-    } else {
-      setQuizAns(false);
-      setTimeout(() => setQuizAns(null), 1000);
+      setXp(x => x + 10);
+      setStreak(s => s + 1);
     }
   };
 
-  const handlePlayAudio = (text, lang) => {
-    setShowingAudio(true);
-    speak(text, lang);
-    setTimeout(() => setShowingAudio(false), 2000);
+  const handleNextTest = () => {
+    if (testIdx < currentLesson.length - 1) {
+      setTestIdx(t => t + 1);
+      setTestAnswered(false);
+    } else {
+      setPage("lessons");
+      setLessonIdx(l => l + 1);
+      setCardIdx(0);
+      setTestIdx(0);
+    }
   };
 
-  const handleBack = () => {
-    if (screen === "lesson") setScreen("menu");
-    else if (screen === "menu") setLang(null), setScreen("langs");
-  };
-
-  // ─── RENDER: LANGUAGE SELECTION ────────────────────────────
-  if (screen === "langs") {
+  // HOME PAGE
+  if (page === "home") {
     return (
-      <div style={{ minHeight: "100vh", background: C.bg, padding: "20px", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-          <h1 style={{ textAlign: "center", color: C.primary, marginBottom: "30px" }}>
-            ✦ UzLingua ⚡ {xp} XP
-          </h1>
-          <p style={{ textAlign: "center", color: C.muted, marginBottom: "20px" }}>
-            Ўзбекчадан ўрган 🌏 6 та тилни Ipak Yo'li usulida
-          </p>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+      <div style={{background: C.bg, minHeight: "100vh", padding: "20px", fontFamily: "'DM Sans', sans-serif"}}>
+        <div style={{maxWidth: "500px", margin: "0 auto"}}>
+          <h1 style={{color: C.primary, textAlign: "center", marginBottom: "30px"}}>🇺🇿 UzLingua</h1>
+          <p style={{color: C.muted, textAlign: "center", marginBottom: "40px"}}>Ўзбекчани ўргани</p>
+          
+          <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px"}}>
             {LANGS.map(l => (
               <button
                 key={l.code}
                 onClick={() => handleLangSelect(l.code)}
                 style={{
                   padding: "20px",
-                  border: `2px solid ${C.border}`,
-                  borderRadius: "12px",
+                  border: "2px solid " + C.border,
                   background: C.card,
+                  borderRadius: "12px",
                   cursor: "pointer",
-                  fontSize: "16px",
+                  fontSize: "14px",
                   fontWeight: "600",
                   color: C.text,
-                  transition: "all 0.3s",
+                  transition: "all 0.3s"
                 }}
-                onMouseEnter={(e) => e.target.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)"}
-                onMouseLeave={(e) => e.target.style.boxShadow = "none"}
               >
-                <div style={{ fontSize: "24px", marginBottom: "8px" }}>{l.flag}</div>
-                <div>{l.name}</div>
-                <div style={{ fontSize: "12px", color: C.muted }}>⚡ 0 XP</div>
+                <div style={{fontSize: "24px", marginBottom: "8px"}}>{l.flag}</div>
+                {l.name}
               </button>
             ))}
           </div>
@@ -205,304 +215,124 @@ export default function App() {
     );
   }
 
-  // ─── RENDER: MENU ──────────────────────────────────────────
-  if (screen === "menu") {
+  // LESSONS PAGE
+  if (page === "lessons") {
     return (
-      <div style={{ minHeight: "100vh", background: C.bg, padding: "20px", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
-            <button
-              onClick={handleBack}
-              style={{
-                padding: "8px 16px",
-                background: C.primary,
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "14px",
-              }}
-            >
-              ← Orqaga
-            </button>
-            <h1 style={{ color: C.primary, margin: "0" }}>
-              {langObj?.flag} {langObj?.name}
-            </h1>
-            <div style={{ fontSize: "14px", color: C.muted }}>
-              ⚡ {xp} XP | 🔥 {streak}
+      <div style={{background: C.bg, minHeight: "100vh", padding: "20px", fontFamily: "'DM Sans', sans-serif"}}>
+        <div style={{maxWidth: "500px", margin: "0 auto"}}>
+          <div style={{display: "flex", justifyContent: "space-between", marginBottom: "20px"}}>
+            <button onClick={() => setPage("home")} style={{background: "none", border: "none", fontSize: "20px", cursor: "pointer"}}>←</button>
+            <div style={{textAlign: "center"}}>
+              <span style={{color: C.primary, fontWeight: "700", fontSize: "18px"}}>⭐ {xp} XP</span>
+              <span style={{color: C.success, fontWeight: "700", fontSize: "18px", marginLeft: "15px"}}>🔥 {streak} дни</span>
             </div>
           </div>
 
-          <div style={{ marginBottom: "20px" }}>
-            <h3 style={{ color: C.text }}>Dars {lesson + 1}</h3>
-            <div style={{
-              background: C.tealLight,
-              height: "8px",
-              borderRadius: "4px",
-              overflow: "hidden",
-            }}>
-              <div style={{
-                background: C.teal,
-                height: "100%",
-                width: `${((lesson + 1) / 5) * 100}%`,
-              }} />
-            </div>
-          </div>
+          {/* CARD SECTION */}
+          {currentWord && (
+            <div style={{marginBottom: "30px"}}>
+              <div style={{background: C.card, padding: "30px", borderRadius: "15px", textAlign: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.1)"}}>
+                <div style={{fontSize: "48px", marginBottom: "15px"}}>📚</div>
+                <div style={{fontSize: "32px", color: C.primary, fontWeight: "700", marginBottom: "10px"}}>{currentWord.uz}</div>
+                <div style={{fontSize: "18px", color: C.muted, marginBottom: "20px"}}>{currentWord.t[lang]}</div>
+                
+                <div style={{display: "flex", gap: "10px", justifyContent: "center", marginBottom: "20px"}}>
+                  <button
+                    onClick={() => playAudio(currentWord.uz)}
+                    style={{
+                      padding: "10px 20px",
+                      background: C.gold,
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                      fontSize: "14px"
+                    }}
+                  >
+                    🔊 Ўзбекча
+                  </button>
+                  <button
+                    onClick={() => playAudio(currentWord.t[lang])}
+                    style={{
+                      padding: "10px 20px",
+                      background: C.teal,
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                      fontSize: "14px"
+                    }}
+                  >
+                    🔊 {LANGS.find(l => l.code === lang)?.name}
+                  </button>
+                </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
-            <button
-              onClick={() => handleStartLesson("cards")}
-              style={{
-                padding: "30px",
-                background: C.goldLight,
-                border: `2px solid ${C.goldBorder}`,
-                borderRadius: "12px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: "600",
-                color: C.text,
-              }}
-            >
-              <div style={{ fontSize: "32px", marginBottom: "10px" }}>🎴</div>
-              <div>Kartochkalar</div>
-            </button>
-
-            <button
-              onClick={() => handleStartLesson("quiz")}
-              style={{
-                padding: "30px",
-                background: C.successBg,
-                border: `2px solid ${C.success}`,
-                borderRadius: "12px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: "600",
-                color: C.text,
-              }}
-            >
-              <div style={{ fontSize: "32px", marginBottom: "10px" }}>❓</div>
-              <div>Testlar</div>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── RENDER: FLASHCARDS ────────────────────────────────────
-  if (screen === "lesson" && mode === "cards") {
-    const word = lessonWords[cardIdx];
-    const translation = word.t[lang];
-
-    return (
-      <div style={{ minHeight: "100vh", background: C.bg, padding: "20px", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
-            <button
-              onClick={handleBack}
-              style={{
-                padding: "8px 16px",
-                background: C.primary,
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            >
-              ← Orqaga
-            </button>
-            <div style={{ fontSize: "14px", color: C.muted }}>
-              {cardIdx + 1} / {lessonWords.length}
-            </div>
-          </div>
-
-          <div
-            onClick={handleCardFlip}
-            style={{
-              background: flipped ? C.card : C.primary,
-              color: flipped ? C.text : "white",
-              padding: "60px 20px",
-              borderRadius: "16px",
-              textAlign: "center",
-              cursor: "pointer",
-              minHeight: "300px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              marginBottom: "30px",
-              transition: "all 0.3s",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
-            }}
-          >
-            <div style={{ fontSize: "48px", marginBottom: "20px" }}>
-              {flipped ? "🔤" : "🎯"}
-            </div>
-            <div style={{ fontSize: flipped ? "32px" : "28px", fontWeight: "700" }}>
-              {flipped ? translation : word.uz}
-            </div>
-            <div style={{ fontSize: "14px", marginTop: "20px", opacity: 0.7 }}>
-              {flipped ? "Teskari aylantiring" : "Bosing"}
-            </div>
-          </div>
-
-          {/* AUDIO BUTTONS */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
-            <button
-              onClick={() => handlePlayAudio(word.uz, "uz-UZ")}
-              style={{
-                padding: "12px",
-                background: C.teal,
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "600",
-              }}
-            >
-              🔊 Ўзбекча
-            </button>
-            <button
-              onClick={() => handlePlayAudio(translation, langObj.speech)}
-              style={{
-                padding: "12px",
-                background: C.gold,
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "600",
-              }}
-            >
-              🔊 {langObj?.name}
-            </button>
-          </div>
-
-          {showingAudio && (
-            <div style={{
-              textAlign: "center",
-              color: C.teal,
-              fontSize: "14px",
-              marginBottom: "20px",
-              fontWeight: "600",
-            }}>
-              🔊 Ovoz ijro etilmoqda...
+                <button
+                  onClick={handleCardFlip}
+                  style={{
+                    padding: "12px 24px",
+                    background: C.primary,
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    width: "100%"
+                  }}
+                >
+                  Кейинги →
+                </button>
+              </div>
             </div>
           )}
 
-          <button
-            onClick={handleCardNext}
-            style={{
-              width: "100%",
-              padding: "16px",
-              background: C.success,
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "700",
-            }}
-          >
-            Keyingi →
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── RENDER: QUIZ ──────────────────────────────────────────
-  if (screen === "lesson" && mode === "quiz") {
-    const word = lessonWords[quizIdx];
-    const options = [word.t[lang]];
-    while (options.length < 4) {
-      const randomWord = lessonWords[Math.floor(Math.random() * lessonWords.length)];
-      if (!options.includes(randomWord.t[lang])) {
-        options.push(randomWord.t[lang]);
-      }
-    }
-    options.sort(() => Math.random() - 0.5);
-
-    return (
-      <div style={{ minHeight: "100vh", background: C.bg, padding: "20px", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
-            <button
-              onClick={handleBack}
-              style={{
-                padding: "8px 16px",
-                background: C.primary,
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            >
-              ← Orqaga
-            </button>
-            <div style={{ fontSize: "14px", color: C.muted }}>
-              {quizIdx + 1} / {lessonWords.length}
+          {/* TEST SECTION */}
+          {testWord && (
+            <div>
+              <h3 style={{color: C.primary, marginBottom: "15px"}}>Тест: {testWord.uz} нима?</h3>
+              <div style={{display: "grid", gap: "10px"}}>
+                {[testWord.t[lang], ...WORDS.filter(w => w.id !== testWord.id).slice(0, 3).map(w => w.t[lang])].sort(() => Math.random() - 0.5).map((ans, i) => (
+                  <button
+                    key={i}
+                    onClick={() => !testAnswered && handleTestAnswer(ans)}
+                    disabled={testAnswered}
+                    style={{
+                      padding: "15px",
+                      background: testAnswered ? (ans === testWord.t[lang] ? C.successBg : C.errorBg) : C.card,
+                      color: testAnswered ? (ans === testWord.t[lang] ? C.success : C.error) : C.text,
+                      border: "2px solid " + (testAnswered ? (ans === testWord.t[lang] ? C.success : C.error) : C.border),
+                      borderRadius: "8px",
+                      cursor: testAnswered ? "default" : "pointer",
+                      fontWeight: "600",
+                      fontSize: "16px"
+                    }}
+                  >
+                    {ans}
+                  </button>
+                ))}
+              </div>
+              {testAnswered && (
+                <button
+                  onClick={handleNextTest}
+                  style={{
+                    padding: "12px 24px",
+                    background: C.primary,
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    width: "100%",
+                    marginTop: "15px"
+                  }}
+                >
+                  {testIdx < currentLesson.length - 1 ? "Кейинги" : "Дарс тамом"} →
+                </button>
+              )}
             </div>
-          </div>
-
-          <div style={{
-            background: C.card,
-            padding: "30px",
-            borderRadius: "12px",
-            marginBottom: "30px",
-            textAlign: "center",
-            border: `2px solid ${C.border}`,
-          }}>
-            <div style={{ fontSize: "14px", color: C.muted, marginBottom: "10px" }}>
-              Tarjimani toping:
-            </div>
-            <div style={{ fontSize: "36px", fontWeight: "700", color: C.primary }}>
-              {word.uz}
-            </div>
-          </div>
-
-          {/* AUDIO BUTTON FOR QUIZ */}
-          <button
-            onClick={() => handlePlayAudio(word.uz, "uz-UZ")}
-            style={{
-              width: "100%",
-              padding: "12px",
-              background: C.teal,
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600",
-              marginBottom: "20px",
-            }}
-          >
-            🔊 Eshit
-          </button>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
-            {options.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => handleQuizAnswer(opt === word.t[lang])}
-                style={{
-                  padding: "16px",
-                  background: quizAns === null ? C.card : opt === word.t[lang] ? C.successBg : C.errorBg,
-                  color: C.text,
-                  border: `2px solid ${quizAns === null ? C.border : opt === word.t[lang] ? C.success : C.error}`,
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  transition: "all 0.2s",
-                }}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+          )}
         </div>
       </div>
     );
